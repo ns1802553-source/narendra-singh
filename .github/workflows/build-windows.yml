@@ -1,0 +1,44 @@
+name: Build RepliCut AI for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install FFmpeg
+        shell: pwsh
+        run: choco install ffmpeg --no-progress -y
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Package Windows app
+        shell: pwsh
+        run: |
+          $ffmpeg = (Get-Command ffmpeg.exe).Source
+          pyinstaller --noconfirm --clean --windowed --name RepliCut-AI --onefile --add-binary "$ffmpeg;." app.py
+
+      - name: Upload Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: RepliCut-AI-Windows
+          path: dist/RepliCut-AI.exe
+          if-no-files-found: error
